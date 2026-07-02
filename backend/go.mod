@@ -11,5 +11,9 @@ require (
     github.com/redis/go-redis/v9 v9.0.0
     github.com/go-playground/validator/v10 v10.12.0
     golang.org/x/crypto v0.8.0
-    // swagger UI removed to avoid transitive dependency issues
+    github.com/swaggo/swag v1.16.1
+    github.com/swaggo/gin-swagger v1.6.0
 )
+
+// Fix transitive module path mismatch for smartystreets assertions
+replace github.com/smartystreets/assertions => github.com/smarty/assertions v0.0.0-20190704000000-000000000000
