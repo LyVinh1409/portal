@@ -15,5 +15,4 @@ require (
     github.com/swaggo/gin-swagger v1.6.0
 )
 
-// Fix transitive module path mismatch for smartystreets assertions
-replace github.com/smartystreets/assertions => github.com/smarty/assertions v0.0.0-20190704000000-000000000000
+// (no replaces)
