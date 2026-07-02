@@ -3,7 +3,6 @@ package server
 import (
     "net/http"
     "os"
-    "time"
 
     "github.com/example/project/backend/internal/auth"
     "github.com/example/project/backend/internal/banner"
