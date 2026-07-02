@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   postgres:
     image: postgres:15
@@ -11,23 +12,51 @@ services:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d appdb || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - appnet
 
   redis:
     image: redis:7
     restart: unless-stopped
     ports:
       - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - appnet
 
   minio:
     image: minio/minio:latest
-    command: server /data
+    command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
+    restart: unless-stopped
     ports:
       - "9000:9000"
+      - "9001:9001"
     volumes:
       - miniodata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/minio/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - appnet
 
   backend:
     build: ./backend
@@ -35,20 +64,33 @@ services:
       - ./.env.example
     ports:
       - "8080:8080"
+    restart: unless-stopped
     depends_on:
       - postgres
       - redis
       - minio
+    networks:
+      - appnet
 
   frontend:
     build: ./frontend
+    env_file:
+      - ./frontend/.env.example
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8080
     ports:
       - "3000:3000"
+    restart: unless-stopped
     depends_on:
       - backend
+    networks:
+      - appnet
 
 volumes:
   pgdata:
   miniodata:
+  redisdata:
+
+networks:
+  appnet:
+    driver: bridge

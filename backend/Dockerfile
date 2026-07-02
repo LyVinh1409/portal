@@ -1,9 +1,9 @@
 FROM golang:1.20-alpine AS builder
 WORKDIR /app
 ENV CGO_ENABLED=0
-COPY go.mod go.sum ./
+COPY go.mod ./
 RUN apk add --no-cache git
-RUN go mod download
+RUN go mod tidy
 COPY . .
 RUN go build -o /app/bin/server ./cmd/server
 
