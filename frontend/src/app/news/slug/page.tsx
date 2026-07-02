@@ -5,7 +5,7 @@ import { NewsAPI } from '../../../lib/api'
 
 export default function NewsDetail(){
   const params = useParams()
-  const slug = params.slug
+  const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug || ''
   const [item, setItem] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   useEffect(()=>{ load() }, [slug])
