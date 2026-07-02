@@ -1,0 +1,2 @@
+-- 003_placeholder.sql
+-- Placeholder for future migrations (seeds handled by Go seed runner)
