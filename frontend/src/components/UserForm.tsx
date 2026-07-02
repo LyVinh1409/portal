@@ -1,7 +1,12 @@
 "use client"
 import React, { useState } from 'react'
 
-type Props = { initial?: { email?: string }, onSubmit: (v: { email: string, password?: string }) => Promise<void>, submitLabel?: string }
+type CreateUserPayload = { email: string, password: string }
+type EditUserPayload = { email: string, password?: string }
+
+type Props =
+  | { initial?: undefined, onSubmit: (v: CreateUserPayload) => Promise<void>, submitLabel?: string }
+  | { initial: { email?: string }, onSubmit: (v: EditUserPayload) => Promise<void>, submitLabel?: string }
 
 export default function UserForm({ initial, onSubmit, submitLabel = 'Save' }: Props){
   const [email, setEmail] = useState(initial?.email || '')
@@ -13,9 +18,16 @@ export default function UserForm({ initial, onSubmit, submitLabel = 'Save' }: Pr
     e.preventDefault()
     setError(null)
     if (!email) { setError('Email is required'); return }
+    if (!initial && !password) { setError('Password is required'); return }
+
     setLoading(true)
     try {
-      await onSubmit({ email, password: password || undefined })
+      if (initial) {
+        const payload: EditUserPayload = password ? { email, password } : { email }
+        await onSubmit(payload)
+      } else {
+        await onSubmit({ email, password })
+      }
     } catch (err: any) {
       setError(err?.message || 'Error')
     } finally { setLoading(false) }
