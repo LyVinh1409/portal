@@ -9,4 +9,4 @@
 // @securityDefinitions.apikey Bearer
 // @in header
 // @name Authorization
-package main
+package server

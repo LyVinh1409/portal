@@ -16,8 +16,6 @@ import (
     "github.com/example/project/backend/internal/storage"
     "github.com/example/project/backend/internal/user"
     "github.com/gin-gonic/gin"
-    swaggerFiles "github.com/swaggo/files"
-    ginSwagger "github.com/swaggo/gin-swagger"
     "golang.org/x/crypto/bcrypt"
     "gorm.io/gorm"
 )
@@ -104,8 +102,7 @@ func New(db *gorm.DB, cfg Config) *Server {
     mediaSvc := media.NewService(db, minioClient)
     mediaHandler := handlers.NewMediaHandler(mediaSvc, minioClient, db)
 
-    // swagger docs route
-    r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+    // swagger docs removed in runtime to avoid bringing CLI/transitive deps
 
     api := r.Group("/api")
     api.GET("/health", func(c *gin.Context){ c.JSON(200, gin.H{"status":"ok"}) })
