@@ -4,13 +4,19 @@ import AdminLayout from '../../../components/AdminLayout'
 import { Categories } from '../../../lib/api'
 import Link from 'next/link'
 
+type CategoryFormState = {
+  name: string
+  slug: string
+  parent_id?: number | null
+}
+
 export default function CategoriesPage(){
   const [items, setItems] = useState<any[]>([])
-  const [form, setForm] = useState({ name: '', slug: '', parent_id: '' })
+  const [form, setForm] = useState<CategoryFormState>({ name: '', slug: '', parent_id: null })
   const [loading, setLoading] = useState(false)
   useEffect(()=>{ load() }, [])
   async function load(){ const res = await Categories.list(100, 0); setItems(res.data || []) }
-  async function handleCreate(){ if(!form.name) return; setLoading(true); try{ await Categories.create(form); setForm({ name: '', slug: '', parent_id: '' }); await load() }finally{ setLoading(false) } }
+  async function handleCreate(){ if(!form.name) return; setLoading(true); try{ await Categories.create(form); setForm({ name: '', slug: '', parent_id: null }); await load() }finally{ setLoading(false) } }
   async function handleDelete(id:number){ if(confirm('Delete?')){ await Categories.remove(id); await load() } }
   return (
     <AdminLayout>
