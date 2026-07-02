@@ -1,8 +1,8 @@
 "use client"
 import React, { useEffect, useState } from 'react'
-import PublicLayout from './components/PublicLayout'
+import PublicLayout from '../components/PublicLayout'
 import Link from 'next/link'
-import { PublicAPI } from './lib/publicApi'
+import { PublicAPI } from '../lib/publicApi'
 
 export default function HomePage(){
   const [news, setNews] = useState<any[]>([])

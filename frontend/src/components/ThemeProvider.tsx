@@ -1,7 +1,12 @@
 "use client"
 import React, { createContext, useContext, useEffect, useState } from 'react'
 
-const ThemeContext = createContext({ dark: false, toggle: ()=>{} as any })
+type ThemeContextValue = {
+  dark: boolean
+  toggle: () => void
+}
+
+const ThemeContext = createContext<ThemeContextValue>({ dark: false, toggle: () => {} })
 
 export function useTheme(){ return useContext(ThemeContext) }
 
