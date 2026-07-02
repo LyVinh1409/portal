@@ -76,6 +76,10 @@ func New(db *gorm.DB, cfg Config) *Server {
     db.AutoMigrate(&models.Tag{}, &models.News{}, &models.Comment{}, &models.Upload{})
     db.AutoMigrate(&models.Banner{})
     db.AutoMigrate(&models.Media{})
+    db.AutoMigrate(&models.NewsletterSubscriber{})
+    db.AutoMigrate(&models.ViewLog{})
+    db.AutoMigrate(&models.Poll{}, &models.PollOption{}, &models.PollVote{})
+    db.AutoMigrate(&models.AuditLog{})
 
     // init auth store and service
     store := auth.NewRedisStore(cfg.RedisAddr)
@@ -114,12 +118,6 @@ func New(db *gorm.DB, cfg Config) *Server {
     authGroup.POST("/login", s.login)
     authGroup.POST("/refresh", s.refresh)
     authGroup.POST("/logout", s.logout)
-
-    // public endpoints (no auth)
-    api.GET("/news", newsHandler.ListPublic)
-    api.GET("/news/:id", newsHandler.DetailPublic)
-    api.GET("/banners", bannerHandler.ListPublic)
-    api.GET("/media/list", mediaHandler.ListPublic)
 
     protected := api.Group("")
     protected.Use(auth.JWTMiddleware(s.cfg.JwtSecret))
@@ -278,4 +276,3 @@ func (s *Server) jwtMiddleware() gin.HandlerFunc {
 
 // helpers
 // no helpers required; using os.Getenv directly
-

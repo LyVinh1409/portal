@@ -65,12 +65,28 @@ func (h *NewsHandler) create(c *gin.Context) {
     var req createNewsReq
     if err := c.ShouldBindJSON(&req); err != nil { c.JSON(http.StatusBadRequest, gin.H{"error":"invalid"}); return }
     if err := h.validate.Struct(req); err != nil { c.JSON(http.StatusBadRequest, gin.H{"error":"validation", "details": err.Error()}); return }
+    
+    // Get author ID from JWT context
+    uid, exists := c.Get("user_id")
+    if !exists { c.JSON(http.StatusUnauthorized, gin.H{"error":"unauthorized"}); return }
+    var authorID uint
+    switch v := uid.(type) {
+    case uint:
+        authorID = v
+    case float64:
+        authorID = uint(v)
+    case int:
+        authorID = uint(v)
+    default:
+        c.JSON(http.StatusUnauthorized, gin.H{"error":"invalid user context"}); return
+    }
+    
     var pubPtr *time.Time
-    // parse publishedAt if provided
     if req.PublishedAt != nil && *req.PublishedAt != "" {
         if t, err := time.Parse(time.RFC3339, *req.PublishedAt); err == nil { pubPtr = &t }
     }
-    n, err := h.svc.Create(c.Request.Context(), req.Title, req.Excerpt, req.Body, req.Slug, req.SeoTitle, req.SeoDescription, req.FeaturedKey, pubPtr, req.TagIDs)
+    
+    n, err := h.svc.CreateWithAuthor(c.Request.Context(), authorID, req.Title, req.Excerpt, req.Body, req.Slug, req.SeoTitle, req.SeoDescription, req.FeaturedKey, pubPtr, req.TagIDs)
     if err != nil { c.JSON(http.StatusBadRequest, gin.H{"error":"create", "details": err.Error()}); return }
     c.JSON(http.StatusCreated, gin.H{"data": n})
 }
@@ -110,25 +126,34 @@ func (h *NewsHandler) delete(c *gin.Context) {
 }
 
 func (h *NewsHandler) addComment(c *gin.Context) {
-    // simple comment creation (no moderation)
-    var req struct{ AuthorName, AuthorEmail, Body string; ParentID *uint }
+    var req struct{ AuthorName, AuthorEmail, Body string; ParentID *uint; Rating *int }
     id, _ := strconv.Atoi(c.Param("id"))
     if err := c.ShouldBindJSON(&req); err != nil { c.JSON(http.StatusBadRequest, gin.H{"error":"invalid"}); return }
     if req.AuthorName == "" || req.Body == "" { c.JSON(http.StatusBadRequest, gin.H{"error":"validation"}); return }
-    cm := map[string]interface{}{"news_id": id, "parent_id": req.ParentID, "author_name": req.AuthorName, "author_email": req.AuthorEmail, "body": req.Body}
-    if err := h.svc.DB().Exec("INSERT INTO comments (news_id, parent_id, author_name, author_email, body) VALUES (?, ?, ?, ?, ?)", cm["news_id"], cm["parent_id"], cm["author_name"], cm["author_email"], cm["body"]).Error; err != nil { c.JSON(http.StatusInternalServerError, gin.H{"error":"create"}); return }
+    
+    rating := 0
+    if req.Rating != nil { rating = *req.Rating }
+    
+    cm := map[string]interface{}{
+        "news_id": id,
+        "parent_id": req.ParentID,
+        "author_name": req.AuthorName,
+        "author_email": req.AuthorEmail,
+        "body": req.Body,
+        "rating": rating,
+        "status": "pending",
+    }
+    if err := h.svc.DB().Exec(
+        "INSERT INTO comments (news_id, parent_id, author_name, author_email, body, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        cm["news_id"], cm["parent_id"], cm["author_name"], cm["author_email"], cm["body"], cm["rating"], cm["status"],
+    ).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error":"create"})
+        return
+    }
     c.JSON(http.StatusCreated, gin.H{"ok": true})
 }
 
 func (h *NewsHandler) ListPublic(c *gin.Context) {
-    // @Summary List published news
-    // @Description Get list of published news articles for public
-    // @Tags News
-    // @Produce json
-    // @Param limit query int false "Limit" default(10)
-    // @Param offset query int false "Offset" default(0)
-    // @Success 200 {object} object{data=array}
-    // @Router /news [get]
     limit := 10
     offset := 0
     if l := c.Query("limit"); l != "" { if lv, _ := strconv.Atoi(l); lv > 0 { limit = lv } }
@@ -139,17 +164,8 @@ func (h *NewsHandler) ListPublic(c *gin.Context) {
 }
 
 func (h *NewsHandler) DetailPublic(c *gin.Context) {
-    // @Summary Get published news by ID
-    // @Description Retrieve a single published news article
-    // @Tags News
-    // @Produce json
-    // @Param id path int true "News ID"
-    // @Success 200 {object} object{data=object}
-    // @Failure 404 {object} object{error=string}
-    // @Router /news/{id} [get]
     id, _ := strconv.Atoi(c.Param("id"))
     n, err := h.svc.GetByID(c.Request.Context(), uint(id))
     if err != nil { c.JSON(http.StatusNotFound, gin.H{"error":"notfound"}); return }
     c.JSON(http.StatusOK, gin.H{"data": n})
 }
-
